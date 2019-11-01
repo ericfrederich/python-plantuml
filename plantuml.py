@@ -13,21 +13,11 @@ import httplib2
 import six
 from six.moves.urllib.parse import urlencode
 
-if six.PY2:
-    from string import maketrans
-else:
-    maketrans = bytes.maketrans
-
 __version__ = 0, 3, 0
 __version_string__ = '.'.join(str(x) for x in __version__)
 
 __author__ = 'Doug Napoleone, Samuel Marks, Eric Frederich'
 __email__ = 'doug.napoleone+plantuml@gmail.com'
-
-
-plantuml_alphabet = string.digits + string.ascii_uppercase + string.ascii_lowercase + '-_'
-base64_alphabet   = string.ascii_uppercase + string.ascii_lowercase + string.digits + '+/'
-b64_to_plantuml = maketrans(base64_alphabet.encode('utf-8'), plantuml_alphabet.encode('utf-8'))
 
 
 class PlantUMLError(Exception):
@@ -61,9 +51,17 @@ class PlantUMLHTTPError(PlantUMLConnectionError):
 def deflate_and_encode(plantuml_text):
     """zlib compress the plantuml text and encode it for the plantuml server.
     """
+    base64_alphabet   = string.ascii_uppercase + string.ascii_lowercase + string.digits + '+/'
+    plantuml_alphabet = string.digits + string.ascii_uppercase + string.ascii_lowercase + '-_'
+    if six.PY2:
+        b64_to_plantuml = dict(zip(base64_alphabet, plantuml_alphabet))
+    else:
+        b64_to_plantuml = str.maketrans(base64_alphabet, plantuml_alphabet)
+
     zlibbed_str = compress(plantuml_text.encode('utf-8'))
     compressed_string = zlibbed_str[2:-4]
-    return base64.b64encode(compressed_string).translate(b64_to_plantuml).decode('utf-8')
+    b64_str = base64.b64encode(compressed_string).decode('ascii')
+    return b64_str.translate(b64_to_plantuml)
 
 
 class PlantUML(object):
